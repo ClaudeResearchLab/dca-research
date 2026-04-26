@@ -8860,13 +8860,14 @@ function revealProfileResult({ scroll = false } = {}) {
 }
 
 function goalMetric(goal, asset) {
-  // 'growth' is asset-aware: across assets FPV/MM are unfair due to history
-  // length, so compare by IRR. Inside a single asset, compare by efficiency
-  // (MM on actually-invested capital), since the budget is the same.
-  if (goal === 'growth') {
+  // 'growth' and 'capital_efficiency' are asset-aware: across assets FPV/MM
+  // are unfair due to history length (a 33-year SPY beats a 12-year BTC on
+  // cumulative multiples even when BTC's IRR is 3x higher), so compare by
+  // IRR on ANY. Inside a single asset, compare by efficiency (MM on
+  // actually-invested capital), since the budget and history match.
+  if (goal === 'growth' || goal === 'capital_efficiency') {
     return (asset === 'ANY' || !asset) ? 'irr' : 'mm_invested';
   }
-  if (goal === 'capital_efficiency') return 'mm_invested';
   if (goal === 'drawdown') return 'max_dd';
   return 'irr_max_dd';
 }
@@ -9017,10 +9018,11 @@ function recommendForProfile() {
     return { ...closest, riskFilterEmpty: true, riskFilterCut: allRows.length, poolSize: 0 };
   }
 
-  // For metrics that reward not deploying capital (mm_invested), add a soft
-  // penalty when deployment is low — otherwise an asset-light strategy with
-  // 5% deployment can shadow a real DCA workhorse.
-  const goalRewardsScarcity = (metric === 'mm_invested');
+  // 'capital_efficiency' goal explicitly says "I want the invested dollars
+  // working hard". Penalize low deployment so an asset-light strategy with
+  // 5% deployment can't shadow a real DCA workhorse — same intent as
+  // mm_invested ranking, but applies even when ANY×ANY routes us to IRR.
+  const goalRewardsScarcity = (profileState.goal === 'capital_efficiency' || metric === 'mm_invested');
   const rankedByGoal = rankRows(rows, metric);
   const scored = rows.map(row => {
     const psycho = row.strategy.psycho || {};
@@ -9077,11 +9079,16 @@ function recReasonHtml(rec) {
   const goalLabel = choiceLabel('goal', profileState.goal);
   const metricLabel = (MATRIX_METRICS[rec.goalMetric] && MATRIX_METRICS[rec.goalMetric].label) || rec.goalMetric;
   let main = '';
-  // Goal-specific framing for asset-aware "growth" routing.
-  if (profileState.goal === 'growth' && (profileState.asset === 'ANY' || !profileState.asset)) {
+  // Goal-specific framing for asset-aware routing on growth / capital_efficiency.
+  const isAnyAsset = profileState.asset === 'ANY' || !profileState.asset;
+  if (profileState.goal === 'growth' && isAnyAsset) {
     main = en
       ? `Goal "maximum upside" + any market → we compared on <b>annualized return (IRR)</b>: BTC and SPY have different history lengths, so final dollar amounts aren't directly comparable.`
       : `Цель «максимум выгоды» + любой рынок → сравнили по <b>годовой доходности (IRR)</b>: между BTC и SPY длина истории разная, итоговые суммы напрямую несравнимы.`;
+  } else if (profileState.goal === 'capital_efficiency' && isAnyAsset) {
+    main = en
+      ? `Goal "best return on deployed capital" + any market → we compared on <b>annualized return (IRR)</b>, since cumulative invested-growth multiples aren't directly comparable across markets with different history lengths. We still penalize strategies that leave most of the budget sitting in cash.`
+      : `Цель «максимальная отдача на вложенное» + любой рынок → сравнили по <b>годовой доходности (IRR)</b>, потому что накопительные множители на вложенный капитал между рынками с разной длиной истории напрямую несравнимы. Стратегии, у которых большая часть бюджета лежит в кэше, всё равно получают штраф.`;
   } else if (profileState.goal === 'growth' || profileState.goal === 'capital_efficiency') {
     main = en
       ? `Goal "${escapeHtml(goalLabel)}" → within the chosen market we compared strategies by <b>${escapeHtml(metricLabel)}</b> (how many times the actually-invested dollars grew). We also check the strategy isn't just sitting on cash.`
