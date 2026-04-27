@@ -49,7 +49,7 @@ h3 { font-size: 18px; margin: 28px 0 12px; color: #1e293b; }
 .psycho-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 20px; align-items: center; }
 .psycho-pill { display: inline-block; padding: 4px 10px; font-size: 12px; font-weight: 500; border-radius: 8px; background: #e2e8f0; color: #334155; }
 .psycho-pill-note { font-size: 12px; color: #64748b; font-style: italic; margin-left: 4px; }
-.risk-pill { display: inline-block; padding: 3px 9px; font-size: 11px; font-weight: 600; border-radius: 6px; }
+.risk-pill { display: inline-flex; align-items: center; white-space: nowrap; padding: 3px 9px; font-size: 11px; font-weight: 600; border-radius: 6px; }
 .risk-pill.mini { font-size: 10px; padding: 2px 6px; }
 .risk-1 { background: #dcfce7; color: #166534; }
 .risk-2 { background: #ecfccb; color: #3f6212; }
@@ -822,6 +822,11 @@ h3 {
   border-bottom: 1px solid #f1f5f9;
   vertical-align: middle;
   font-variant-numeric: tabular-nums;
+}
+.product-table th:last-child,
+.product-table td:last-child {
+  min-width: 138px;
+  white-space: nowrap;
 }
 .product-table tr:hover td {
   background: #fbfbfa;
@@ -3238,7 +3243,7 @@ table.summary {
               <span>Market</span>
             </div>
             <div class="choice-row" data-choice-group="asset">
-              <button type="button" data-field="asset" data-value="ANY">No preference</button>
+              <button type="button" data-field="asset" data-value="ANY">Any</button>
               <button type="button" data-field="asset" data-value="BTC">BTC</button>
               <button type="button" data-field="asset" data-value="ETH">ETH</button>
               <button type="button" data-field="asset" data-value="SPY">SPY</button>
